@@ -33,32 +33,32 @@ router.post("/:id/comments", (req, res) => {
     res
       .status(400)
       .json({ errorMessage: "Please provide text for the comment." });
-  }
-
-  db.insertComment(comment)
-    .then(data => {
-      db.findCommentById(data.id)
-        .then(data => {
-          res.status(201).json(data);
-        })
-        .catch(err => {
-          res.status(500).json({
-            error:
-              "Error in sending back newly created comment, but it was created."
+  } else {
+    db.insertComment(comment)
+      .then(data => {
+        db.findCommentById(data.id)
+          .then(data => {
+            res.status(201).json(data);
+          })
+          .catch(err => {
+            res.status(500).json({
+              error:
+                "Error in sending back newly created comment, but it was created."
+            });
           });
+      })
+      .catch(err => {
+        res.status(500).json({
+          error: "There was an error while saving the comment to the database"
         });
-    })
-    .catch(err => {
-      res.status(500).json({
-        error: "There was an error while saving the comment to the database"
       });
-    });
+  }
 });
 
 router.get("/", (req, res) => {
   db.find()
-    .then(users => {
-      res.status(200).json(users);
+    .then(posts => {
+      res.status(200).json(posts);
     })
     .catch(() => {
       res
@@ -69,9 +69,9 @@ router.get("/", (req, res) => {
 
 router.get("/:id", (req, res) => {
   db.findById(req.params.id)
-    .then(user => {
-      if (user) {
-        res.status(200).json(user);
+    .then(post => {
+      if (post) {
+        res.status(200).json(post);
       } else {
         res
           .status(404)
@@ -88,7 +88,7 @@ router.get("/:id", (req, res) => {
 router.get("/:id/comments", (req, res) => {
   let { id } = req.params;
 
-  db.findPostByComments(id)
+  db.findPostComments(id)
     .then(data => {
       if (!data || data.length == 0) {
         res
