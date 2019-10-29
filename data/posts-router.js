@@ -24,35 +24,49 @@ router.post("/", (req, res) => {
 });
 
 router.post("/:id/comments", (req, res) => {
-  let { id } = req.params;
-  let comment = req.body;
-
-  comment.post_id = id;
-
-  if (!comment || !comment.text) {
+  const { id } = req.params;
+  const { text } = req.body;
+  // check required text
+  if (!text) {
     res
       .status(400)
       .json({ errorMessage: "Please provide text for the comment." });
-  } else {
-    db.insertComment(comment)
-      .then(data => {
-        db.findCommentById(data.id)
-          .then(data => {
-            res.status(201).json(data);
+  }
+  // find post
+  db.findById(id)
+    .then(post => {
+      if (!post) {
+        res
+          .status(404)
+          .json({ message: "The post with the specified ID does not exist." });
+      } else {
+        // add comment
+        db.insertComment({ text, post_id: id })
+          .then(comment => {
+            // get comment data
+            db.findCommentById(comment.id)
+              .then(newComment => {
+                res.status(201).json(newComment);
+              })
+              .catch(err => {
+                res.status(500).json({
+                  errorMessage: "Could not get newly created comment."
+                });
+              });
           })
           .catch(err => {
             res.status(500).json({
               error:
-                "Error in sending back newly created comment, but it was created."
+                "There was an error while saving the comment to the database"
             });
           });
-      })
-      .catch(err => {
-        res.status(500).json({
-          error: "There was an error while saving the comment to the database"
-        });
-      });
-  }
+      }
+    })
+    .catch(err => {
+      res
+        .status(500)
+        .json({ error: "The post information could not be retrieved." });
+    });
 });
 
 router.get("/", (req, res) => {
@@ -68,14 +82,16 @@ router.get("/", (req, res) => {
 });
 
 router.get("/:id", (req, res) => {
-  db.findById(req.params.id)
+  const { id } = req.params;
+
+  db.findById(id)
     .then(post => {
-      if (post) {
-        res.status(200).json(post);
-      } else {
+      if (!post) {
         res
           .status(404)
           .json({ message: "The post with the specified ID does not exist." });
+      } else {
+        res.status(200).json(post);
       }
     })
     .catch(() => {
@@ -86,22 +102,37 @@ router.get("/:id", (req, res) => {
 });
 
 router.get("/:id/comments", (req, res) => {
-  let { id } = req.params;
-
-  db.findPostComments(id)
-    .then(data => {
-      if (!data || data.length == 0) {
+  const { id } = req.params;
+  // get post
+  db.findById(id)
+    .then(post => {
+      if (!post) {
         res
-          .status(400)
-          .json({ message: "The post with the specified ID does not exist." });
+          .status(404)
+          .json({ message: "The post with the specified ID does not exist." })
+          .end();
+      } else {
+        // get comments
+        db.findPostComments(id)
+          .then(comments => {
+            res.status(200).json(comments);
+          })
+          .catch(err => {
+            res
+              .status(500)
+              .json({
+                error: "The comments information could not be retrieved."
+              })
+              .end();
+          });
       }
-      res.status(200).json(data);
     })
-    .catch(err =>
+    .catch(err => {
       res
         .status(500)
         .json({ error: "The post information could not be retrieved." })
-    );
+        .end();
+    });
 });
 
 router.delete("/:id", (req, res) => {
@@ -124,16 +155,17 @@ router.delete("/:id", (req, res) => {
 
 router.put("/:id", (req, res) => {
   const { title, contents } = req.body;
+  const { id } = req.params;
 
   if (!title || !contents) {
     res
       .status(400)
       .json({ errorMessage: "Please provide title and content for the post." });
   } else {
-    db.update(req.params.id, req.body)
+    db.update(id, req.body)
       .then(user => {
         if (user) {
-          res.status(200).json(user);
+          res.status(200).json({ successMessage: "It worked!!!" });
         } else {
           res.status(404).json({
             message: "The post with the specified ID does not exist."
