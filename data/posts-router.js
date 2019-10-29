@@ -123,9 +123,9 @@ router.delete("/:id", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  const { title, content } = req.body;
+  const { title, contents } = req.body;
 
-  if (!title || !content) {
+  if (!title || !contents) {
     res
       .status(400)
       .json({ errorMessage: "Please provide title and content for the post." });
